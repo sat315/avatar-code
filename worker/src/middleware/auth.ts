@@ -26,8 +26,8 @@ export async function apiAuth(
   const secret = c.env.API_KEY;
 
   if (!secret) {
-    // API_KEY未設定時は認証スキップ（ローカル開発用）
-    return next();
+    // API_KEY未設定時は全リクエストを拒否（認証キーが必須）
+    return c.json({ error: "API_KEY が設定されていません。サーバー管理者に連絡してください" }, 403);
   }
 
   if (apiKey !== secret) {

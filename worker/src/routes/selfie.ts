@@ -88,7 +88,7 @@ selfieRoute.post("/generate", async (c) => {
 
     // 参照画像がある場合は R2 / 外部URL から取得して multimodal 入力に追加
     if (referenceImageUrl) {
-      const imageData = await fetchImageAsBase64(referenceImageUrl, c.env.UPLOADS);
+      const imageData = await fetchImageAsBase64(referenceImageUrl, c.env.UPLOADS, c.env.FRONTEND_URL);
       if (imageData) {
         parts.push({ inlineData: { mimeType: imageData.mimeType, data: imageData.base64 } });
         console.log("参照画像取得成功:", imageData.mimeType);

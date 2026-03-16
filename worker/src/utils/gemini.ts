@@ -32,7 +32,9 @@ interface ModelsResponse {
  */
 export async function findImageModel(apiKey: string): Promise<string | null> {
   try {
-    const res = await fetch(`${GEMINI_API_BASE}/models?key=${apiKey}`);
+    const res = await fetch(`${GEMINI_API_BASE}/models`, {
+      headers: { "x-goog-api-key": apiKey },
+    });
     if (!res.ok) return null;
 
     const data = (await res.json()) as ModelsResponse;
@@ -75,7 +77,8 @@ export async function findImageModel(apiKey: string): Promise<string | null> {
  */
 export async function fetchImageAsBase64(
   imageUrl: string,
-  r2Bucket: R2Bucket
+  r2Bucket: R2Bucket,
+  frontendUrl?: string
 ): Promise<{ base64: string; mimeType: string } | null> {
   let imageBuffer: ArrayBuffer | null = null;
   let mimeType = "image/png";
@@ -89,8 +92,8 @@ export async function fetchImageAsBase64(
       mimeType = r2Object.httpMetadata?.contentType || "image/png";
     }
   } else {
-    const frontendUrl = (process.env.FRONTEND_URL || "").replace(/\/$/, "");
-    const pagesUrl = `${frontendUrl}${imageUrl}`;
+    const baseUrl = (frontendUrl || "").replace(/\/$/, "");
+    const pagesUrl = `${baseUrl}${imageUrl}`;
     console.log("参照画像を外部URLから取得:", pagesUrl);
     try {
       const res = await fetch(pagesUrl);

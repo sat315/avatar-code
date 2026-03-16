@@ -175,7 +175,7 @@ export default function Home() {
       <header className="border-b border-discord-border bg-discord-sidebar px-4 py-3 sm:px-6 sm:py-4">
         <div className="mx-auto flex max-w-4xl items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-discord-text sm:text-xl">Artemisia</h1>
+            <h1 className="text-lg font-bold text-discord-text sm:text-xl">AvatarCode</h1>
             <p className="text-xs text-discord-muted sm:text-sm">
               あなただけのAIキャラクターを選んでチャットしよう
             </p>

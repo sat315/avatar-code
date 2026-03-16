@@ -689,7 +689,8 @@ app.post("/deploy", async (c) => {
 // ---------- サーバー起動 ----------
 
 if (!BRIDGE_SECRET) {
-  console.warn("⚠️  BRIDGE_SECRET が未設定です。本番環境では必ず設定してください。");
+  console.error("❌ BRIDGE_SECRET が設定されていません。.env を確認してください");
+  process.exit(1);
 }
 
 if (!process.env.PROJECTS_DIR) {
@@ -727,20 +728,14 @@ const wss = new WebSocketServer({ noServer: true });
     return;
   }
 
-  // 認証チェック: トークン認証 or 許可されたOriginからの接続
+  // 認証チェック: トークン認証を必須とする（Originチェックだけでは接続不可）
   const authParam = url.searchParams.get("token");
-  const origin = req.headers.origin || "";
-  const frontendUrl = process.env.FRONTEND_URL;
-  const allowedOrigins = [
-    "http://localhost:5173",
-    ...(frontendUrl ? [frontendUrl] : []),
-  ];
   const isTokenValid = BRIDGE_SECRET && authParam === BRIDGE_SECRET;
-  const isOriginValid = allowedOrigins.includes(origin);
 
-  if (!isTokenValid && !isOriginValid) {
+  if (!isTokenValid) {
     (socket as import("net").Socket).destroy();
-    console.log(`[WS] Rejected: token=${!!authParam}, origin=${origin}`);
+    const origin = req.headers.origin || "";
+    console.log(`[WS] Rejected (トークン認証失敗): origin=${origin}`);
     return;
   }
 

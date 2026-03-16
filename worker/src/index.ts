@@ -22,29 +22,36 @@ export type Bindings = {
   BRIDGE_SECRET: string;   // ブリッジ認証トークン（Worker↔Bridge間）
   API_KEY: string;         // フロントエンド認証キー（BRIDGE_SECRETとは別値）
   GEMINI_API_KEY: string;  // Gemini APIキー（アバター生成用）
+  FRONTEND_URL?: string;   // 本番フロントエンドURL（CORS許可用、未設定時は *.pages.dev を許可）
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
 
 // ミドルウェア
 app.use("*", logger());
-app.use(
-  "/api/*",
-  cors({
+// CORS設定: c.envからFRONTEND_URLを参照するためミドルウェア内でcors()を呼び出す
+app.use("/api/*", async (c, next) => {
+  const frontendUrl = c.env.FRONTEND_URL;
+  if (!frontendUrl) {
+    console.warn("⚠️ FRONTEND_URL が未設定です。全ての *.pages.dev ドメインからのアクセスを許可します。セキュリティ向上のため FRONTEND_URL の設定を推奨します。");
+  }
+  const handler = cors({
     origin: (origin) => {
       const allowed = [
-        process.env.FRONTEND_URL,      // 本番フロントエンドURL（環境変数で設定）
+        frontendUrl,
         "http://localhost:5173",
       ].filter(Boolean) as string[];
       if (allowed.includes(origin)) return origin;
-      if (/\.pages\.dev$/.test(origin)) return origin;  // Cloudflare Pages preview URLs
+      // FRONTEND_URL 未設定時のみ *.pages.dev を許可（後方互換）
+      if (!frontendUrl && /\.pages\.dev$/.test(origin)) return origin;
       return null;
     },
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization", "X-API-Key"],
     maxAge: 86400,
-  })
-);
+  });
+  return handler(c, next);
+});
 
 // API認証（CORS後、ルート結合前に適用）
 app.use("/api/*", apiAuth);

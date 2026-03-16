@@ -219,7 +219,7 @@ export default function Setup() {
         {/* ヘッダー */}
         <div className="mb-1 flex items-center justify-between">
           <h1 className="text-xl font-bold text-discord-text sm:text-2xl">
-            {isEditMode ? "AIを編集" : "Artemisia"}
+            {isEditMode ? "AIを編集" : "AvatarCode"}
           </h1>
           {isEditMode && (
             <button
@@ -290,7 +290,7 @@ export default function Setup() {
             type="text"
             value={aiName}
             onChange={(e) => setAiName(e.target.value)}
-            placeholder="例: アルテ"
+            placeholder="例: MyAI"
             className="w-full rounded-3xl border border-discord-border bg-discord-input px-3 py-2 text-sm text-discord-text placeholder-discord-muted outline-none transition focus:border-discord-accent focus:ring-1 focus:ring-discord-accent"
           />
         </div>
