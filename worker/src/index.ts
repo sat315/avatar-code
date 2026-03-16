@@ -11,6 +11,7 @@ import { costumesRoute } from "./routes/costumes";
 import { foldersRoute } from "./routes/folders";
 import { sessionsRoute } from "./routes/sessions";
 import { selfieRoute } from "./routes/selfie";
+import { manifestRoute } from "./routes/manifest";
 import { apiAuth } from "./middleware/auth";
 
 // 環境変数・バインディングの型定義
@@ -62,5 +63,6 @@ app.route("/api/costumes", costumesRoute);
 app.route("/api/folders", foldersRoute);
 app.route("/api/sessions", sessionsRoute);
 app.route("/api/selfie", selfieRoute);
+app.route("/api/manifest", manifestRoute);
 
 export default app;

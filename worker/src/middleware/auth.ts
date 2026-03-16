@@ -10,9 +10,15 @@ export async function apiAuth(
   c: Context<{ Bindings: Bindings }>,
   next: Next
 ) {
-  // 画像配信エンドポイントはブラウザの<img src>から直接アクセスされるため認証スキップ
   const path = new URL(c.req.url).pathname;
+
+  // 画像配信エンドポイントはブラウザの<img src>から直接アクセスされるため認証スキップ
   if (c.req.method === "GET" && path.startsWith("/api/upload/")) {
+    return next();
+  }
+
+  // PWAマニフェストはブラウザが直接フェッチするため認証スキップ
+  if (c.req.method === "GET" && path === "/api/manifest") {
     return next();
   }
 
