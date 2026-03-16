@@ -53,7 +53,7 @@ avatar-code/
 The easiest way to get started is to let Claude Code handle the setup for you:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/avatar-code.git
+git clone https://github.com/sat315/avatar-code.git
 cd avatar-code
 # Then tell Claude Code: "Read SETUP.md and set up AvatarCode for me"
 ```
