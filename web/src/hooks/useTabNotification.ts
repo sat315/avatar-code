@@ -48,11 +48,16 @@ export function useTabNotification() {
 
   const resetFavicon = useCallback(() => {
     const link = document.querySelector<HTMLLinkElement>(FAVICON_SELECTOR);
-    if (link) link.href = ORIGINAL_FAVICON;
+    if (!link) return;
+    // PWAアイコンが設定されていればそちらを優先、なければデフォルトに戻す
+    const pwaIconUrl = localStorage.getItem("pwaIconUrl");
+    link.href = pwaIconUrl || ORIGINAL_FAVICON;
   }, []);
 
   /** 通知を止めてタイトル・ファビコンを元に戻す */
   const stop = useCallback(() => {
+    // 通知が出ていない場合は何もしない（faviconを不用意にリセットしない）
+    if (!currentTypeRef.current && !intervalRef.current) return;
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
