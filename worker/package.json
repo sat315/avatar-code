@@ -1,0 +1,20 @@
+{
+  "name": "avatar-code-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AvatarCode API — Cloudflare Workers + Hono",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 execute avatar-code-db --local --file=src/db/schema.sql",
+    "db:migrate:remote": "wrangler d1 execute avatar-code-db --remote --file=src/db/schema.sql"
+  },
+  "dependencies": {
+    "hono": "^4.12.5"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260307.1",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.71.0"
+  }
+}

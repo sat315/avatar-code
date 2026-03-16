@@ -1,0 +1,36 @@
+node_modules/
+dist/
+.wrangler/
+
+# シークレット・環境変数（絶対にコミットしない）
+.dev.vars
+.env
+.env.local
+worker/.dev.vars
+bridge/.env
+web/.env.local
+
+# wrangler.toml は .example のみ追跡
+worker/wrangler.toml
+
+# ペルソナ画像・アップロードファイル
+bridge/personas/*
+!bridge/personas/example.md
+web/public/avatars/
+
+# 内部設計ドキュメント（公開不要）
+docs/
+
+# Viteデフォルトテンプレート（不要）
+web/README.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Claude Code
+.claude/settings.local.json

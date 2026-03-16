@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+/* モノトーン・ミニマルデザイン */
+@theme {
+  --color-discord-bg: #f7f6f4;
+  --color-discord-sidebar: #f2f1ef;
+  --color-discord-card: #fbfaf9;
+  --color-discord-text: #6b6560;
+  --color-discord-muted: #9c948e;
+  --color-discord-accent: #1c1917;
+  --color-discord-accent-hover: #292524;
+  --color-discord-border: #d4d0cb;
+  --color-discord-input: #e9e6e1;
+  --color-discord-green: #44403c;
+  --color-user-bubble: #1c1917;
+  --color-ai-bubble: #f0ebe3;
+  --font-sans: "Noto Sans JP", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* ダークモード: [data-theme="dark"] で変数を上書き */
+[data-theme="dark"] {
+  --color-discord-bg: #201e1b;
+  --color-discord-sidebar: #1a1816;
+  --color-discord-card: #272421;
+  --color-discord-text: #cec8c1;
+  --color-discord-muted: #7a7069;
+  --color-discord-accent: #e8e0d6;
+  --color-discord-accent-hover: #f5f0e8;
+  --color-discord-border: #35302b;
+  --color-discord-input: #2d2a26;
+  --color-discord-green: #a8a09a;
+  --color-user-bubble: #e8e0d6;
+  --color-ai-bubble: #272421;
+}
+
+body {
+  margin: 0;
+  background: var(--color-discord-sidebar);
+  color: var(--color-discord-text);
+  min-height: 100dvh;
+  /* モバイル: pull-to-refresh と バウンスを無効化 */
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* iOS safe area for notched devices */
+html {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+}
+
+/* 水平スクロール完全防止（htmlにoverflow-x: hiddenを付けるとPC版で縦スクロールが効かなくなる） */
+body, #root {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+}
+
+/* コードブロック等の横はみ出し防止 */
+pre, code, .markdown-body pre {
+  overflow-x: auto;
+  max-width: 100%;
+  word-break: break-all;
+}
+
+/* メッセージバブル内のはみ出し防止 */
+.markdown-body {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
+}
+
+/* モバイル: テキストエリアのズーム防止 (iOS) */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
+/* モバイル: スムーズスクロール */
+.mobile-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* モバイル: タップハイライト無効化 */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ストリーミング時の点滅カーソル */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.streaming-cursor::after {
+  content: "\258B";
+  animation: blink 1s step-end infinite;
+  color: var(--color-discord-accent);
+}

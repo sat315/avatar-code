@@ -1,0 +1,24 @@
+name = "avatar-code-api"
+main = "src/index.ts"
+compatibility_date = "2025-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ブリッジサーバーURL
+# ローカルモード:          http://localhost:3456
+# Cloudflareフリー枠:     https://YOUR_TUNNEL_NAME.cfargotunnel.com
+# カスタムドメイン:        https://your-bridge.your-domain.com
+[vars]
+BRIDGE_URL = "http://localhost:3456"
+
+# D1データベースバインディング
+# wrangler d1 create avatar-code-db で作成してIDを記入
+[[d1_databases]]
+binding = "DB"
+database_name = "avatar-code-db"
+database_id = "YOUR_D1_DATABASE_ID"
+
+# R2画像ストレージバインディング
+# wrangler r2 bucket create avatar-code-uploads で作成
+[[r2_buckets]]
+bucket_name = "avatar-code-uploads"
+binding = "UPLOADS"

@@ -1,0 +1,24 @@
+{
+  "name": "avatar-code-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "test:sdk": "tsx src/test-sdk.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.72",
+    "@hono/node-server": "^1.13.0",
+    "dotenv": "^17.3.1",
+    "hono": "^4.12.5",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.3"
+  }
+}

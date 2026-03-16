@@ -1,0 +1,15 @@
+# Worker シークレット（ローカル開発用）
+# 本番環境は wrangler secret put で設定すること
+
+# ブリッジ認証キー（bridge/.env の BRIDGE_SECRET と同じ値）
+BRIDGE_SECRET=your-bridge-secret
+
+# フロントエンド認証キー（web/.env.local の VITE_API_KEY と同じ値）
+API_KEY=your-api-key
+
+# Gemini API キー（アバター画像生成用）
+# https://aistudio.google.com/app/apikey から取得
+GEMINI_API_KEY=your-gemini-api-key
+
+# ローカル開発時のブリッジURL
+BRIDGE_URL=http://localhost:3456
