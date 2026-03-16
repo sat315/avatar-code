@@ -46,6 +46,18 @@ export default function Wardrobe() {
   // PWAアイコン設定
   const [pwaToast, setPwaToast] = useState(false);
 
+  // 戻るボタン（faviconを維持しながら戻る）
+  const handleBack = () => {
+    const iconUrl = localStorage.getItem("pwaIconUrl");
+    if (iconUrl) {
+      const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null;
+      if (favicon) favicon.href = iconUrl;
+      const touchIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement | null;
+      if (touchIcon) touchIcon.href = iconUrl;
+    }
+    navigate(-1);
+  };
+
   // データ取得
   useEffect(() => {
     if (!personaId) return;
@@ -277,7 +289,7 @@ export default function Wardrobe() {
 
       {/* ヘッダー */}
       <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-discord-border bg-discord-card px-4 py-3">
-        <button onClick={() => navigate(-1)} className="text-discord-muted hover:text-discord-text text-lg">
+        <button onClick={handleBack} className="text-discord-muted hover:text-discord-text text-lg">
           <ArrowLeft size={20} />
         </button>
         <h1 className="text-lg font-bold text-discord-text">
