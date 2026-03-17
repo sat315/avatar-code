@@ -5,6 +5,7 @@ interface ChatInputProps {
   input: string;
   streaming: boolean;
   imagePreview: string | null;
+  uploadError?: string | null;
   aiName: string;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
@@ -21,6 +22,7 @@ export function ChatInput({
   input,
   streaming,
   imagePreview,
+  uploadError,
   aiName,
   textareaRef,
   fileInputRef,
@@ -53,6 +55,11 @@ export function ChatInput({
 
   return (
     <footer className="border-t border-discord-border bg-discord-sidebar px-2 py-2 pb-[env(safe-area-inset-bottom,8px)] sm:px-4 sm:py-3">
+      {uploadError && (
+        <div className="mx-auto max-w-3xl px-2 pb-1 sm:px-4">
+          <p className="text-xs text-red-400">⚠ {uploadError}</p>
+        </div>
+      )}
       {imagePreview && (
         <div className="mx-auto max-w-3xl px-2 pb-2 sm:px-4">
           <div className="relative inline-block">

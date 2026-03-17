@@ -1,21 +1,14 @@
 import { useState, useRef, useCallback } from "react";
-
-/** FileをBase64 data URIに変換するヘルパー */
-const fileToDataUri = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-};
+import { prepareImage } from "../utils/imageUtils";
 
 /**
  * 画像アップロード管理カスタムフック
  * クリップボードペースト・ファイル選択・プレビュー表示をまとめて管理する
+ * 大きな画像は自動的に圧縮してAPIの上限（4.5MB）以内に収める
  */
 export function useFileUpload() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /** クリップボードから画像ペースト */
@@ -27,8 +20,13 @@ export function useFileUpload() {
         e.preventDefault();
         const file = item.getAsFile();
         if (file) {
-          const dataUri = await fileToDataUri(file);
-          setImagePreview(dataUri);
+          const { dataUri, error } = await prepareImage(file);
+          if (error) {
+            setUploadError(error);
+          } else {
+            setUploadError(null);
+            setImagePreview(dataUri);
+          }
         }
         return;
       }
@@ -39,8 +37,13 @@ export function useFileUpload() {
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith("image/")) {
-      const dataUri = await fileToDataUri(file);
-      setImagePreview(dataUri);
+      const { dataUri, error } = await prepareImage(file);
+      if (error) {
+        setUploadError(error);
+      } else {
+        setUploadError(null);
+        setImagePreview(dataUri);
+      }
     }
     // 同じファイルを再選択できるようにリセット
     e.target.value = "";
@@ -49,11 +52,13 @@ export function useFileUpload() {
   /** プレビュークリア */
   const clearPreview = useCallback(() => {
     setImagePreview(null);
+    setUploadError(null);
   }, []);
 
   return {
     imagePreview,
     setImagePreview,
+    uploadError,
     fileInputRef,
     handlePaste,
     handleFileSelect,

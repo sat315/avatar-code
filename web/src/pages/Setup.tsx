@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { API_BASE, authHeaders, authHeadersNoBody } from "../config";
+import { prepareImage, dataUriToBlob } from "../utils/imageUtils";
 
 /**
  * セットアップページ（新規作成 & 編集 兼用）
@@ -16,6 +17,8 @@ export default function Setup() {
   const [appearance, setAppearance] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarDataUri, setAvatarDataUri] = useState<string | null>(null);
+  const [avatarMimeType, setAvatarMimeType] = useState<string>("image/jpeg");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState("");
@@ -55,23 +58,27 @@ export default function Setup() {
   }, [id, isEditMode]);
 
   /** アバター画像ファイル選択ハンドラ */
-  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setAvatarFile(file);
+    const { dataUri, mimeType, error } = await prepareImage(file);
+    if (error) {
+      setError(error);
+      return;
+    }
 
-    // プレビュー用にbase64変換
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAvatarPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    // 圧縮済みの data URI を保持（アップロード・プレビュー両用）
+    setAvatarFile(file);
+    setAvatarDataUri(dataUri);
+    setAvatarMimeType(mimeType);
+    setAvatarPreview(dataUri);
   };
 
   /** アバター画像を削除 */
   const handleAvatarRemove = () => {
     setAvatarFile(null);
+    setAvatarDataUri(null);
     setAvatarPreview(null);
     setAvatarUrl(null);
   };
@@ -89,12 +96,14 @@ export default function Setup() {
       // アバターURL決定
       let finalAvatarUrl: string | null | undefined = undefined;
 
-      // 新しいファイルがアップロードされた場合 → R2にアップロード
-      if (avatarFile) {
+      // 新しいファイルがアップロードされた場合 → 圧縮済みBlobをR2にアップロード
+      if (avatarFile && avatarDataUri) {
         setLoadingStatus("アバターアップロード中...");
         try {
+          const blob = dataUriToBlob(avatarDataUri);
+          const ext = avatarMimeType.split("/")[1] === "jpeg" ? "jpg" : (avatarMimeType.split("/")[1] || "jpg");
           const formData = new FormData();
-          formData.append("file", avatarFile);
+          formData.append("file", blob, `avatar.${ext}`);
           const uploadRes = await fetch(`${API_BASE}/upload`, {
             method: "POST",
             headers: authHeadersNoBody(),

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { API_BASE, authHeaders, authHeadersNoBody } from "../config";
 import { resolveUrl } from "../utils/resolveUrl";
+import { prepareImage, dataUriToBlob } from "../utils/imageUtils";
 import { ArrowLeft, Download, Pencil, Trash2, Plus, Shirt, Check, RefreshCw, X, Sparkles, Wand2, Upload, Smartphone } from "lucide-react";
 
 type Costume = {
@@ -42,6 +43,7 @@ export default function Wardrobe() {
 
   // アップロード用
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // PWAアイコン設定
   const [pwaToast, setPwaToast] = useState(false);
@@ -238,9 +240,21 @@ export default function Wardrobe() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !personaId) return;
+    setUploadError(null);
+
+    const { dataUri, mimeType, error } = await prepareImage(file);
+    if (error) {
+      setUploadError(error);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
     try {
+      // 圧縮済み Blob を FormData に詰めてアップロード
+      const blob = dataUriToBlob(dataUri);
+      const ext = mimeType.split("/")[1] === "jpeg" ? "jpg" : (mimeType.split("/")[1] || "jpg");
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", blob, `upload.${ext}`);
       const res = await fetch(`${API_BASE}/upload`, {
         method: "POST",
         headers: authHeadersNoBody(),
@@ -262,9 +276,12 @@ export default function Wardrobe() {
             return next;
           });
         }
+      } else if (data.error) {
+        setUploadError(data.error);
       }
     } catch (error) {
       console.error("アップロードエラー:", error);
+      setUploadError("アップロードに失敗しました");
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -469,11 +486,14 @@ export default function Wardrobe() {
           <div className="border-t border-discord-border pt-3">
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => { setUploadError(null); fileInputRef.current?.click(); }}
               className="w-full rounded-lg bg-discord-input py-2 text-sm font-semibold text-discord-text hover:bg-discord-border"
             >
               <Upload size={16} className="inline" /> 画像をアップロード
             </button>
+            {uploadError && (
+              <p className="mt-2 text-sm text-red-500">⚠ {uploadError}</p>
+            )}
           </div>
         </div>
       </div>

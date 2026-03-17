@@ -17,6 +17,7 @@ import { DiffModal } from "../components/DiffModal";
 import { RewindDialog } from "../components/RewindDialog";
 import { API_BASE, authHeaders, authHeadersNoBody } from "../config";
 import { resolveUrl } from "../utils/resolveUrl";
+import { applyPwaIcon } from "../utils/pwaIcon";
 import { Sidebar } from "../components/Sidebar";
 import type { Message, BridgeStatus, ToolActivity, Folder, Session } from "../types/chat";
 
@@ -89,7 +90,7 @@ export default function Chat() {
   } = useFolders();
 
   const {
-    imagePreview, fileInputRef,
+    imagePreview, uploadError, fileInputRef,
     handlePaste, handleFileSelect, clearPreview,
   } = useFileUpload();
 
@@ -108,6 +109,8 @@ export default function Chat() {
       notifyTab("approval");
     } else {
       stopTabNotification();
+      // 通知終了後に persona favicon を確実に復元（stop() が favicon をリセットする場合に備えて）
+      applyPwaIcon();
     }
   }, [_permissionRequests, notifyTab, stopTabNotification]);
 
@@ -117,6 +120,8 @@ export default function Chat() {
       notifyTab("disconnected");
     } else if (bridgeStatus === "online") {
       stopTabNotification();
+      // WS 再接続後に persona favicon を確実に復元（stop() が favicon をリセットする場合に備えて）
+      applyPwaIcon();
     }
   }, [bridgeStatus, notifyTab, stopTabNotification]);
 
@@ -1015,6 +1020,7 @@ export default function Chat() {
           input={input}
           streaming={streaming}
           imagePreview={imagePreview}
+          uploadError={uploadError}
           aiName={aiName}
           textareaRef={textareaRef}
           fileInputRef={fileInputRef}
