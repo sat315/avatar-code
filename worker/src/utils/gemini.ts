@@ -6,6 +6,14 @@
 export const GEMINI_API_BASE =
   "https://generativelanguage.googleapis.com/v1beta";
 
+/** モジュールレベルキャッシュ（Workerウォーム中は再利用される） */
+let cachedImageModel: string | null = null;
+
+/** キャッシュをリセットする（モデル優先度変更後に呼び出す） */
+export function resetImageModelCache(): void {
+  cachedImageModel = null;
+}
+
 /** generateContent レスポンスの型 */
 export interface GeminiResponse {
   candidates?: Array<{
@@ -29,12 +37,16 @@ interface ModelsResponse {
 /**
  * APIキーで利用可能な画像生成対応モデルを探す
  * 名前に "image" を含む generateContent 対応モデルを優先
+ * モジュールレベルでキャッシュし、Workerがウォームな間は再検索しない
  */
 export async function findImageModel(apiKey: string): Promise<string | null> {
+  if (cachedImageModel) {
+    console.log("モデルキャッシュヒット:", cachedImageModel);
+    return cachedImageModel;
+  }
+
   try {
-    const res = await fetch(`${GEMINI_API_BASE}/models`, {
-      headers: { "x-goog-api-key": apiKey },
-    });
+    const res = await fetch(`${GEMINI_API_BASE}/models?key=${apiKey}`);
     if (!res.ok) return null;
 
     const data = (await res.json()) as ModelsResponse;
@@ -45,17 +57,32 @@ export async function findImageModel(apiKey: string): Promise<string | null> {
       data.models.map((m) => m.name).join(", ")
     );
 
-    // 1. 名前に "image" を含む generateContent 対応モデルを優先
+    // 1. gemini-*-image-generation 系を最優先（image input 対応 = img2img 可能）
+    const geminiImageModel = data.models.find(
+      (m) =>
+        m.name?.includes("gemini") &&
+        m.name?.includes("image") &&
+        m.supportedGenerationMethods?.includes("generateContent")
+    );
+    if (geminiImageModel) {
+      cachedImageModel = geminiImageModel.name.replace("models/", "");
+      console.log("Gemini image モデル選択:", cachedImageModel);
+      return cachedImageModel;
+    }
+
+    // 2. imagen-* 系フォールバック（text-to-image のみ・image input 不可）
     const imageModel = data.models.find(
       (m) =>
         m.name?.includes("image") &&
         m.supportedGenerationMethods?.includes("generateContent")
     );
     if (imageModel) {
-      return imageModel.name.replace("models/", "");
+      cachedImageModel = imageModel.name.replace("models/", "");
+      console.log("imagen フォールバックモデル選択（img2img 不可）:", cachedImageModel);
+      return cachedImageModel;
     }
 
-    // 2. 見つからなければ generateContent 対応モデルをログ出力
+    // 3. 見つからなければ generateContent 対応モデルをログ出力
     const gcModels = data.models.filter((m) =>
       m.supportedGenerationMethods?.includes("generateContent")
     );
@@ -72,18 +99,19 @@ export async function findImageModel(apiKey: string): Promise<string | null> {
 
 /**
  * 画像URLからbase64を取得する
- * - "/upload/" パスなら R2 から直接取得
- * - それ以外なら FRONTEND_URL 環境変数のドメインから HTTP フェッチ
+ * - "/upload/" パスなら R2 から直接取得（最速）
+ * - "https?://" で始まるフルURLなら HTTP フェッチ
+ * - それ以外は不明なパス形式としてスキップ
  */
 export async function fetchImageAsBase64(
   imageUrl: string,
-  r2Bucket: R2Bucket,
-  frontendUrl?: string
+  r2Bucket: R2Bucket
 ): Promise<{ base64: string; mimeType: string } | null> {
   let imageBuffer: ArrayBuffer | null = null;
   let mimeType = "image/png";
 
   if (imageUrl.startsWith("/upload/")) {
+    // R2 直接アクセス（最速・ゼロエグレス）
     const r2Key = imageUrl.replace(/^\/upload\//, "");
     console.log("参照画像R2キー:", r2Key);
     const r2Object = await r2Bucket.get(r2Key);
@@ -91,19 +119,21 @@ export async function fetchImageAsBase64(
       imageBuffer = await r2Object.arrayBuffer();
       mimeType = r2Object.httpMetadata?.contentType || "image/png";
     }
-  } else {
-    const baseUrl = (frontendUrl || "").replace(/\/$/, "");
-    const pagesUrl = `${baseUrl}${imageUrl}`;
-    console.log("参照画像を外部URLから取得:", pagesUrl);
+  } else if (/^https?:\/\//.test(imageUrl)) {
+    // フルURL（例: https://example.com/upload/...）はそのままフェッチ
+    console.log("参照画像をフルURLから取得:", imageUrl);
     try {
-      const res = await fetch(pagesUrl);
+      const res = await fetch(imageUrl);
       if (res.ok) {
         imageBuffer = await res.arrayBuffer();
         mimeType = res.headers.get("content-type") || "image/png";
       }
     } catch (e) {
-      console.error("外部URL取得エラー:", e);
+      console.error("フルURL取得エラー:", e);
     }
+  } else {
+    // 相対パス（/upload/ 以外）→ 取得不可として警告
+    console.warn("参照画像の取得をスキップ: 不明なパス形式:", imageUrl);
   }
 
   if (!imageBuffer) return null;
@@ -143,6 +173,38 @@ export async function callGemini(
       },
     }),
   });
+}
+
+/**
+ * 429（レート制限）時に指数バックオフでリトライする Gemini 呼び出し
+ * 最大3回試行: 即時 → 2秒後 → 5秒後
+ */
+export async function callGeminiWithRetry(
+  apiKey: string,
+  model: string,
+  parts: GeminiPart[],
+  maxRetries = 3
+): Promise<Response> {
+  const delays = [0, 2000, 5000];
+  let lastResponse: Response | null = null;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    if (delays[attempt] > 0) {
+      console.log(`Gemini 429 リトライ待機中: ${delays[attempt]}ms (試行 ${attempt + 1}/${maxRetries})`);
+      await new Promise((resolve) => setTimeout(resolve, delays[attempt]));
+    }
+
+    const response = await callGemini(apiKey, model, parts);
+    lastResponse = response;
+
+    if (response.status !== 429) {
+      return response;
+    }
+
+    console.warn(`Gemini 429 Too Many Requests (試行 ${attempt + 1}/${maxRetries})`);
+  }
+
+  return lastResponse!;
 }
 
 /**

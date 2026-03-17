@@ -54,6 +54,7 @@ avatar-code/
 | `BRIDGE_SECRET` | ブリッジ認証キー |
 | `API_KEY` | フロントエンド認証キー |
 | `GEMINI_API_KEY` | Gemini API（アバター生成用） |
+| `FRONTEND_URL` | フロントエンドURL（CORS制御用、本番のみ） |
 
 ### Web (`web/.env.local`)
 | 変数名 | 用途 |

@@ -31,6 +31,7 @@ export default function Chat() {
   // ---- ペルソナ情報 ----
   const [aiName, setAiName] = useState("AI");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const rawAvatarUrlRef = useRef<string | null>(null);
   const [systemPrompt, setSystemPrompt] = useState("");
 
   // ---- セッション・ストリーミング状態 ----
@@ -286,14 +287,21 @@ export default function Chat() {
                 body: JSON.stringify({
                   personaId: Number(personaIdRef.current),
                   prompt: match[1].trim(),
+                  // costumeUrl は送らない: activate API が personas.avatar_url を衣装画像に
+                  // 同期更新するため、DB の JOIN 結果を優先させる（古い avatar_url を渡すと
+                  // 衣装より元アバターが優先されてしまうバグを防ぐ）
                 }),
               });
-              const data = await res.json() as { url?: string };
+              const data = await res.json() as { url?: string; error?: string };
               if (data.url) {
                 const fullUrl = data.url.startsWith("http")
                   ? data.url
                   : `${API_BASE}${data.url}`;
                 generatedImages.push(fullUrl);
+              } else if (res.status === 429) {
+                setErrorMessage("自撮り生成のレート制限に達しました。少し待ってから再度試してみてね！");
+              } else if (!res.ok) {
+                console.warn("自撮り生成失敗:", data.error);
               }
             } catch (e) {
               console.warn("自撮り生成失敗:", e);
@@ -388,6 +396,7 @@ export default function Chat() {
             const data = (await personaRes.json()) as { persona: { name: string; avatar_url: string | null; system_prompt: string } };
             setAiName(data.persona.name);
             setAvatarUrl(resolveUrl(data.persona.avatar_url));
+            rawAvatarUrlRef.current = data.persona.avatar_url;
             setSystemPrompt(data.persona.system_prompt);
           }
 
@@ -450,6 +459,7 @@ export default function Chat() {
         const data = (await res.json()) as { persona: { name: string; avatar_url: string | null; system_prompt: string } };
         setAiName(data.persona.name);
         setAvatarUrl(resolveUrl(data.persona.avatar_url));
+        rawAvatarUrlRef.current = data.persona.avatar_url;
         setSystemPrompt(data.persona.system_prompt);
       } catch { /* 失敗しても何もしない */ }
     };

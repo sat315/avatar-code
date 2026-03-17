@@ -93,6 +93,8 @@ BRIDGE_SECRET=<ユーザーが設定した値>
 API_KEY=<ユーザーが設定した値>
 GEMINI_API_KEY=<ユーザーが設定した値>
 BRIDGE_URL=http://localhost:3456
+# Cloudflare/カスタムドメインモードのみ以下を設定（CORS制御に使用）:
+# FRONTEND_URL=https://avatar-code.pages.dev
 ```
 
 **bridge/.env**:
@@ -153,6 +155,7 @@ cd worker
 wrangler secret put BRIDGE_SECRET
 wrangler secret put API_KEY
 wrangler secret put GEMINI_API_KEY
+wrangler secret put FRONTEND_URL  # デプロイ後のPages URL（例: https://avatar-code.pages.dev）
 
 # DBマイグレーション（本番）
 npm run db:migrate:remote

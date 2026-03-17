@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { API_BASE, authHeaders, authHeadersNoBody } from "../config";
 import { resolveUrl } from "../utils/resolveUrl";
 import { prepareImage, dataUriToBlob } from "../utils/imageUtils";
-import { ArrowLeft, Download, Pencil, Trash2, Plus, Shirt, Check, RefreshCw, X, Sparkles, Wand2, Upload, Smartphone } from "lucide-react";
+import { ArrowLeft, Download, Pencil, Trash2, Plus, Shirt, Check, RefreshCw, X, Sparkles, Wand2, Upload } from "lucide-react";
 
 type Costume = {
   id: number;
@@ -45,8 +45,8 @@ export default function Wardrobe() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // PWAアイコン設定
-  const [pwaToast, setPwaToast] = useState(false);
+  // 着用トースト
+  const [activateToast, setActivateToast] = useState<"success" | "error" | null>(null);
 
   // 戻るボタン（faviconを維持しながら戻る）
   const handleBack = () => {
@@ -91,13 +91,43 @@ export default function Wardrobe() {
   const handleActivate = async () => {
     if (!selected) return;
     try {
-      await fetch(`${API_BASE}/costumes/${selected.id}/activate`, {
+      const res = await fetch(`${API_BASE}/costumes/${selected.id}/activate`, {
         method: "POST",
         headers: authHeaders(),
       });
+      if (!res.ok) {
+        console.error("衣装着用API エラー:", res.status, await res.text().catch(() => ""));
+        setActivateToast("error");
+        setTimeout(() => setActivateToast(null), 3500);
+        return;
+      }
       setPersona((p) => p ? { ...p, active_costume_id: selected.id, avatar_url: selected.image_url } : p);
+
+      // 着るボタンで favicon / PWAアイコンも同時に更新
+      const imageUrl = selected.image_url;
+      if (imageUrl && personaId) {
+        const resolvedUrl = resolveUrl(imageUrl);
+        if (resolvedUrl) {
+          localStorage.setItem("pwaPersonaId", personaId);
+          localStorage.setItem("pwaIconUrl", resolvedUrl);
+          const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null;
+          if (favicon) favicon.href = resolvedUrl;
+          const touchIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement | null;
+          if (touchIcon) touchIcon.href = resolvedUrl;
+          const manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement | null;
+          if (manifestLink) {
+            const workerBase = API_BASE.replace(/\/api$/, "");
+            manifestLink.href = `${workerBase}/api/manifest?personaId=${personaId}`;
+          }
+        }
+      }
+
+      setActivateToast("success");
+      setTimeout(() => setActivateToast(null), 2500);
     } catch (error) {
       console.error("衣装着用エラー:", error);
+      setActivateToast("error");
+      setTimeout(() => setActivateToast(null), 3500);
     }
   };
 
@@ -214,28 +244,6 @@ export default function Wardrobe() {
     }
   };
 
-  // ホーム画面アイコンに設定
-  const handleSetPwaIcon = () => {
-    const imageUrl = selected?.image_url || persona?.avatar_url;
-    if (!imageUrl || !personaId) return;
-    const resolvedUrl = resolveUrl(imageUrl);
-    if (!resolvedUrl) return;
-    localStorage.setItem("pwaPersonaId", personaId);
-    localStorage.setItem("pwaIconUrl", resolvedUrl);
-    // 即時反映
-    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null;
-    if (favicon) favicon.href = resolvedUrl;
-    const touchIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement | null;
-    if (touchIcon) touchIcon.href = resolvedUrl;
-    const manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement | null;
-    if (manifestLink) {
-      const workerBase = API_BASE.replace(/\/api$/, "");
-      manifestLink.href = `${workerBase}/api/manifest?personaId=${personaId}`;
-    }
-    setPwaToast(true);
-    setTimeout(() => setPwaToast(false), 3500);
-  };
-
   // ファイルアップロード
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -296,11 +304,16 @@ export default function Wardrobe() {
 
   return (
     <div className="min-h-screen bg-discord-bg">
-      {/* PWAアイコン設定トースト */}
-      {pwaToast && (
-        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-discord-accent px-5 py-3 text-sm font-semibold text-white shadow-lg">
-          <Smartphone size={14} className="mr-1.5 inline" />
-          設定しました！ブラウザの「ホーム画面に追加」で反映されます
+      {/* 着用トースト */}
+      {activateToast === "success" && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-green-600 px-5 py-3 text-sm font-semibold text-white shadow-lg">
+          <Check size={14} className="mr-1.5 inline" />
+          着用しました！自撮りに反映されます
+        </div>
+      )}
+      {activateToast === "error" && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white shadow-lg">
+          ⚠ 着用に失敗しました。もう一度お試しください
         </div>
       )}
 
@@ -372,13 +385,6 @@ export default function Wardrobe() {
                     <Shirt size={16} className="inline" /> 着る
                   </button>
                 )}
-                <button
-                  onClick={handleSetPwaIcon}
-                  className="rounded-lg bg-discord-input px-3 py-1.5 text-sm text-discord-text hover:bg-discord-border"
-                  title="ホーム画面アイコンに設定"
-                >
-                  <Smartphone size={16} />
-                </button>
                 <button onClick={handleDownload} className="rounded-lg bg-discord-input px-3 py-1.5 text-sm text-discord-text hover:bg-discord-border" title="ダウンロード">
                   <Download size={16} />
                 </button>

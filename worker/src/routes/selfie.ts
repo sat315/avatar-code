@@ -3,7 +3,7 @@ import type { Bindings } from "../index";
 import {
   findImageModel,
   fetchImageAsBase64,
-  callGemini,
+  callGeminiWithRetry,
   saveImageToR2,
   type GeminiResponse,
   type GeminiPart,
@@ -47,8 +47,16 @@ selfieRoute.post("/generate", async (c) => {
     WHERE p.id = ?
   `).bind(personaId).first<PersonaRow>();
 
+  // costumeUrl はフロントエンドが「着る」ボタン経由で同期した avatar_url を優先使用する。
+  // 未指定の場合は DB の active_costume_id → avatar_url の順にフォールバック。
   const referenceImageUrl = persona?.costume_url || persona?.avatar_url || null;
   const appearance = persona?.appearance;
+
+  console.log("自撮り参照画像決定:", {
+    costume_url: persona?.costume_url ?? "(なし)",
+    avatar_url: persona?.avatar_url ?? "(なし)",
+    使用URL: referenceImageUrl ?? "(なし・テキストのみ)",
+  });
 
   // 利用可能なモデルを自動検出
   const model = await findImageModel(apiKey);
@@ -60,20 +68,23 @@ selfieRoute.post("/generate", async (c) => {
   // 自撮り用プロンプト構築
   const enhancedPrompt = referenceImageUrl
     ? [
-        "【重要】添付画像のキャラクターと完全に同一人物を描いてください。",
-        "以下の特徴を絶対に変えないでください：",
-        appearance
-          ? `- キャラクターの外見: ${appearance}`
-          : "- 顔立ち、目の色、髪の色をそのまま維持",
+        "添付画像のキャラクターと同一人物を描いてください。",
         "",
-        `シーン・表情・ポーズ: ${prompt}`,
+        "【参照画像から必ず引き継ぐもの（変えないこと）】",
+        "- 顔立ち・目の色",
+        "- 衣装・服装・アクセサリー（プロンプト中に別の服装が書かれていても無視すること）",
         "",
-        "ルール:",
-        "- 顔立ち、目の色、髪の色は添付画像と完全一致させること",
-        "- 衣装は添付画像のままにすること（変更指示がある場合のみ変更）",
-        "- 自撮り風のアングル（近距離・正面よりやや上からのカメラアングル）",
-        "- 高品質なアニメ風イラスト、明るくポップな雰囲気",
-        "- テキストなし",
+        "【髪型・髪の色について】",
+        "- 指示がない場合は参照画像の髪型・髪の色をそのまま維持すること",
+        "- 指示がある場合はその指示通りの髪型・髪の色に変更すること",
+        "",
+        "【参照画像から必ず変えること（以下の指示に従うこと）】",
+        "- ポーズ・体勢・シーン・背景・表情はすべて以下の指示通りに描くこと",
+        "- 参照画像のポーズをそのまま引き継がないこと",
+        "",
+        `【シーン・ポーズ・表情の指示（必ず従うこと）】: ${prompt}`,
+        "",
+        "その他: 高品質アニメ風イラスト、テキストなし",
       ].join("\n")
     : [
         "Generate a single high quality anime-style character portrait, selfie-style.",
@@ -88,7 +99,7 @@ selfieRoute.post("/generate", async (c) => {
 
     // 参照画像がある場合は R2 / 外部URL から取得して multimodal 入力に追加
     if (referenceImageUrl) {
-      const imageData = await fetchImageAsBase64(referenceImageUrl, c.env.UPLOADS, c.env.FRONTEND_URL);
+      const imageData = await fetchImageAsBase64(referenceImageUrl, c.env.UPLOADS);
       if (imageData) {
         parts.push({ inlineData: { mimeType: imageData.mimeType, data: imageData.base64 } });
         console.log("参照画像取得成功:", imageData.mimeType);
@@ -99,7 +110,7 @@ selfieRoute.post("/generate", async (c) => {
 
     parts.push({ text: enhancedPrompt });
 
-    const response = await callGemini(apiKey, model, parts);
+    const response = await callGeminiWithRetry(apiKey, model, parts);
 
     if (!response.ok) {
       const errorData = await response.text();

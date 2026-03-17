@@ -91,7 +91,7 @@ avatarRoute.post("/generate", async (c) => {
 
     // 参照画像がある場合、R2から取得してマルチモーダル入力に追加
     if (referenceImageUrl) {
-      const imageData = await fetchImageAsBase64(referenceImageUrl, c.env.UPLOADS, c.env.FRONTEND_URL);
+      const imageData = await fetchImageAsBase64(referenceImageUrl, c.env.UPLOADS);
       if (imageData) {
         parts.push({ inlineData: { mimeType: imageData.mimeType, data: imageData.base64 } });
         console.log("参照画像取得成功:", imageData.mimeType, `${Math.round(imageData.base64.length / 1024)}KB`);
