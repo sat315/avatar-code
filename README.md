@@ -160,6 +160,13 @@ You can switch personas and avatars anytime from the **Wardrobe** page.
 
 ---
 
+## 📖 Background
+
+This project was born out of a desire to give Claude Code a face 🎭
+Read the full story (Japanese): [Zennの記事を読む →](https://zenn.dev/sat315/articles/d2cb2198257aa5)
+
+---
+
 ## 🤝 Contributing
 
 PRs and issues welcome! Please open an issue first for large changes.
