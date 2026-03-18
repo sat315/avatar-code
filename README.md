@@ -3,8 +3,10 @@
 **Your AI character, your coding companion.**
 自分だけのAIキャラでClaude Codeをリモート操作できるWebクライアント
 
-<!-- TODO: デモGIF をここに追加 -->
-<!-- ![AvatarCode Demo](docs/demo.gif) -->
+| 自撮り | 着せ替え | ファイル操作 |
+|:------:|:-------:|:-----------:|
+| ![自撮り](docs/gif/jidori.gif) | ![着せ替え](docs/gif/kisekae.gif) | ![ファイル操作](docs/gif/fairu.gif) |
+| AIキャラが自分の画像を生成 | アバター・ペルソナをいつでも切り替え | プロジェクト内のファイルを確認・編集 |
 
 > ⚠️ **Work in Progress** — Currently in active development. Feedback welcome!
 
@@ -12,7 +14,7 @@
 
 ## ✨ Features
 
-- 🎭 **Persona & Avatar** — AIキャラクターの性格・外見を自由にカスタマイズ（着せ替え式）
+- 🎭 **Persona & Avatar** — AIキャラクターの性格・外見を自由にカスタマイズ（着せ替え式）。アバター変更はPWAアイコンにも反映
 - 💬 **Remote Chat** — ブラウザ/スマホからClaude Codeをリモート操作
 - 🔧 **Tool Approval UI** — ツール実行を承認/拒否するリアルタイムUI
 - 🔄 **Conversation Rewind** — 特定のメッセージ地点まで会話を巻き戻し
@@ -46,7 +48,7 @@ avatar-code/
 - [Cloudflare account](https://cloudflare.com/) (free tier)
 - [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/) (`npm i -g wrangler`)
 - [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) (Cloudflare Tunnel client)
-- Gemini API key ([get one free](https://aistudio.google.com/app/apikey)) — for avatar image generation
+- Gemini API key ([get one free](https://aistudio.google.com/app/apikey)) — for avatar image generation *(optional if you upload images manually)*
 
 ### Setup with Claude Code (recommended)
 
