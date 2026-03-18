@@ -19,7 +19,10 @@ bridge/personas/*
 web/public/avatars/
 
 # 内部設計ドキュメント（公開不要）
-docs/
+docs/*
+!docs/gif/
+docs/gif/*
+!docs/gif/*.gif
 
 # Viteデフォルトテンプレート（不要）
 web/README.md
